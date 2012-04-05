@@ -1,1 +1,7 @@
 The purpose of this NLG service is to generate short textual descriptions of resources from RDF metadata saved in a tripple store repository.
+
+The service is configured via 2 files:
+1.  Ontologies.xml which contains information about ontologies used by the NLG service (name, name space and path to the ontology file)
+2.  nlgService.properties which contains paths to the lexicon files and the ontologies.xml file, and information about the Sesame server.
+
+By default, those configuration files point to the folders of the test package (./test/lexicon and ./test/ontologies)
