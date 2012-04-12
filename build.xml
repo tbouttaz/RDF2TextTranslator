@@ -4,21 +4,36 @@
     <property name="src.dir" value="src"/>
 	<property name="build.dir" value="build" />
 	<property name="dist.dir" value="dist" />
+	<property name="run.dir" value="${dist.dir}/run" />
 	<property name="docs.dir" value="docs" />
-	<property name="test.dir" value="test/nlgService/test"/>
+	<property name="test.dir" value="test/NLGService/test"/>
     <property name="lib.dir" value="lib"/>
 
-    <property name="main-class"  value="WYSIWYM.testclasses.TestTextGeneratorUtils"/>
+    <property name="main-class"  value="NLGService.WYSIWYM.testclasses.TestTextGeneratorUtils"/>
     	
-    <path id="classpath">
+    <path id="compile.classpath">
         <fileset dir="${lib.dir}" includes="**/*.jar"/>
+    	<pathelement path="${build.dir}"/>
     </path>
+	
+	<path id="test.classpath">
+		<path refid="compile.classpath"/>
+		<pathelement location="${build.dir}/classes"/>
+		<pathelement location="${build.dir}/test"/>
+	</path>
+	
+	<path id="run.classpath">
+            <path refid="compile.classpath"/>
+        	<path location="${build.dir}/classes"/>
+	</path>
+
 	
 	<!-- Deletes the existing build, docs and dist directory-->
 	<target name="clean">
 		<delete dir="${build.dir}" />
 		<delete dir="${docs.dir}" />
 		<delete dir="${dist.dir}" />
+		<delete dir="${run.dir}" />
 	</target>
 			
 	<!-- Creates the  build, docs and dist directory-->
@@ -26,17 +41,27 @@
 		<mkdir dir="${build.dir}" />
 		<mkdir dir="${docs.dir}" />
 		<mkdir dir="${dist.dir}" />
+		<mkdir dir="${run.dir}"/>
+		<mkdir dir="${build.dir}/classes"/>
+		<mkdir dir="${build.dir}/test"/>
+		<mkdir dir="${build.dir}/test/data"/>
 	</target>
 	
-	<!-- Compiles the java code (including the usage of library for JUnit -->
+	<!-- Compiles the java code (including the usage of library for JUnit) -->
 	<target name="compile" depends="clean, makedir">
-		<javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="classpath">
+		<javac srcdir="${src.dir}" destdir="${build.dir}/classes" classpathref="compile.classpath">
 		</javac>
+		<javac srcdir="${test.dir}" destdir="${build.dir}/test" classpathref="test.classpath">
+		</javac>
+		
+		<copy todir="${build.dir}/test/data">
+			<fileset dir="test" excludes="**/*.java"/>
+		</copy>
 	</target>
 			
 	<!-- Creates Javadoc -->
 	<target name="docs" depends="compile">
-		<javadoc packagenames="src" sourcepath="${src.dir}" destdir="${docs.dir}">
+		<javadoc classpathref="compile.classpath" packagenames="src" sourcepath="${src.dir}" destdir="${docs.dir}">
 			<!-- Define which files / directory should get included, we include all -->
 			<fileset dir="${src.dir}">
 				<include name="**" />
@@ -44,9 +69,11 @@
 		</javadoc>
 	</target>
 				
-	<!--Creates the deployable jar file  -->
-	<target name="jar" depends="compile">
-		<jar destfile="${dist.dir}/${ant.project.name}.jar" basedir="${build.dir}">
+	<!--Creates the executable jar file  -->
+	<target name="jarRun" depends="compile">
+		<jar destfile="${run.dir}/${ant.project.name}.jar">
+			<fileset dir="${build.dir}/classes"/>
+			<fileset dir="${build.dir}/test"/>
 			<manifest>
 				<attribute name="Main-Class" value="${main-class}" />
 			</manifest>
@@ -54,29 +81,31 @@
 			<zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
 		</jar>
 	</target>
-				
+			
+	<!--Creates the deployable jar file (without libs) -->
+	<target name="jar" depends="compile">
+		<jar destfile="${dist.dir}/${ant.project.name}.jar">
+			<fileset dir="${build.dir}/classes"/>
+			<fileset dir="${build.dir}/test"/>
+		</jar>
+	</target>
+	
     <target name="run" depends="jar">
         <java fork="true" classname="${main-class}">
-            <classpath>
-                <path refid="classpath"/>
-                <path id="application" location="${dist.dir}/${ant.project.name}.jar"/>
-            </classpath>
+            <classpath refid="run.classpath"/>
         </java>
     </target>
 
-    <target name="junit" depends="jar">
+    <target name="junit">
         <junit printsummary="yes">
-            <classpath>
-                <path refid="classpath"/>
-                <path refid="application"/>
-            </classpath>
-            
-            <batchtest fork="yes">
-                <fileset dir="${test.dir}" includes="*Test.java"/>
+        	<formatter type="brief" usefile="false"/>
+            <classpath refid="test.classpath"/>
+            <batchtest fork="no">
+                <fileset dir="${build.dir}/test" includes="**/*Test.class"/>
             </batchtest>
         </junit>
     </target>
 
-	<target name="main" depends="compile, jar, docs"/>
+	<target name="main" depends="compile, jar, jarRun, docs"/>
 	<target name="test" depends="junit, run"/>
 </project>
