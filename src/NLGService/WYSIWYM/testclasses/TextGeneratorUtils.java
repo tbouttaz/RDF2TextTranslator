@@ -76,13 +76,24 @@ public class TextGeneratorUtils {
  	 * @return the feedback text describing that resource
  	 */
  	public static String getTextualDescription(String resourceID){
+ 		return getTextualDescription(resourceID, true);
+ 	}
+ 	
+ 	public static String getTextualDescription(String resourceID, boolean useJenaModel){
 		SemanticGraphTransformer sgt;
 		try {
 			reader = new OntologyReader();
 			sesame = new SesameReader(false);
 			ag = new AutomaticGenerator(reader, sesame);
 
-			sgt = ag.buildGraphFromSesameRepo("user",resourceID);
+			if (useJenaModel) {
+				OntModel jenaModel = sesame.getJenaModel(resourceID);
+				sgt = ag.buildGraphFromJenaModel(jenaModel, resourceID);
+			} else {
+				sgt = ag.buildGraphFromSesameRepo("user",resourceID);
+			}
+			
+			
 			generator = new TextTypesGenerator(sgt, reader, sesame, "user");
 			generator.getSurfaceText().toString();
 		} catch (Exception e) {
@@ -94,7 +105,7 @@ public class TextGeneratorUtils {
  	}
  	
 	/**
-	 * Generate a Jema OntModel corresponding to the given sesame resource ID
+	 * Generate a Jena OntModel corresponding to the given sesame resource ID
 	 * @param resourceID the sesame resource ID
 	 * @return Jena model of that resource
 	 */
